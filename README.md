@@ -125,8 +125,9 @@ Upload
 
 After upload, the LCD should display:
 
-POKEDEX READY
-Connect Site
+*POKEDEX READY*
+
+*Connect Site*
 ## Run the website
 
 The website is included in this repo.
