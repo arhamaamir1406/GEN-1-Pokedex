@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Retro Pokédex</title>
+    <link rel="stylesheet" href="./pokedex.css" />
+</head>
+
+<body>
+
+    <div class="dex">
+        <!-- LEFT PANEL -->
+        <section class="panel left">
+            <div class="top-strip">
+                <div class="lens"></div>
+                <div class="dots">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                </div>
+            </div>
+
+            <div class="screen-frame">
+                <div class="screw s1"></div>
+                <div class="screw s2"></div>
+                <div class="screw s3"></div>
+                <div class="screw s4"></div>
+
+                <div class="screen">
+                    <div class="screen-head">
+                        <div class="screen-type" id="typeLabel">TYPE POKÉMON</div>
+                        <div class="screen-no" id="dexNo">#000</div>
+                    </div>
+
+                    <div class="screen-mid">
+                        <img id="sprite" alt="sprite">
+                    </div>
+
+                    <div class="screen-desc" id="desc">Loading...</div>
+
+                    <div class="screen-meta">
+                        <span id="height">HT 0'00"</span>
+                        <span id="weight">WT 0.0 lbs</span>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <div class="left-controls">
+                <div class="round-btn"></div>
+
+                <div class="small-btns">
+                    <button class="smallbtn" id="cryBtn" aria-label="Play cry">CRY</button>
+                    <button class="smallbtn" id="randBtn" aria-label="Random">RND</button>
+                </div>
+
+                <div class="mini-screen" aria-hidden="true"></div>
+
+                <!-- UPDATED D-PAD -->
+                <div class="dpad" aria-label="D-pad">
+                    <button class="dpad-btn up" id="prevBtnUp" aria-label="Previous (Up)"></button>
+                    <button class="dpad-btn down" id="nextBtnDown" aria-label="Next (Down)"></button>
+                    <button class="dpad-btn left" id="prevBtn" aria-label="Previous (Left)"></button>
+                    <button class="dpad-btn right" id="nextBtn" aria-label="Next (Right)"></button>
+                    <div class="dpad-core"></div>
+                </div>
+            </div>
+
+            <audio id="cryAudio" preload="none"></audio>
+        </section>
+
+        <!-- HINGE -->
+        <div class="hinge" aria-hidden="true"></div>
+
+        <!-- RIGHT PANEL -->
+        <section class="panel right">
+            <div class="badge"> Generation 1 POKÉDEX</div>
+            <button onclick="connectArduino()" class="connect-btn">
+                CONNECT ARDUINO
+            </button>
+            <div class="namebar" id="nameBar">NAME</div>
+
+            <div class="right-grid">
+                <div class="listbox">
+                    <div class="list" id="list"></div>
+                </div>
+
+                <div class="white-pill" aria-hidden="true"></div>
+
+                <div class="right-slots" aria-hidden="true">
+                    <div class="slot"></div>
+                    <div class="slot"></div>
+                </div>
+
+                <div class="yellow-btn" aria-hidden="true"></div>
+
+                <!-- NEW: bottom-right badge -->
+
+            </div>
+        </section>
+    </div>
+
+    <div class="hint">
+        Keys: <b>←/→</b> prev/next • <b>Space</b> cry • <b>R</b> random • click list to select
+    </div>
+
+    <script src="./pokedex.js"></script>
+</body>
+
+</html>
