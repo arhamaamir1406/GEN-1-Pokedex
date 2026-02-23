@@ -566,3 +566,47 @@ body {
 .yellow-btn {
     grid-area: yellow;
 }
+
+/* CONNECT ARDUINO button */
+
+.connect-btn {
+    display: block;
+    padding: 10px 12px;
+
+    background: #b11f1f;
+    border: 3px solid #2a0c0c;
+    border-radius: 10px;
+
+    color: #fff3d6;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+
+    box-shadow:
+        0 3px 0 #2a0c0c,
+        0 10px 18px rgba(0, 0, 0, 0.25);
+
+    cursor: pointer;
+    user-select: none;
+
+    margin-top: auto;
+    width: 88%;
+    align-self: center;
+    margin-bottom: 14px;
+}
+
+.connect-btn:hover {
+    filter: brightness(1.07);
+}
+
+.connect-btn:active {
+    transform: translateY(2px);
+    box-shadow:
+        0 1px 0 #2a0c0c,
+        0 6px 12px rgba(0, 0, 0, 0.22);
+}
+
+.connect-btn.connected {
+    background: #1f7a3a;
+}

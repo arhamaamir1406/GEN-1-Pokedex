@@ -1,14 +1,29 @@
-let port;
-let reader;
-let writer;
+// =====================
+// Retro Pokédex + WebSerial
+// =====================
+
+let port = null;
+let reader = null;
+let keepReading = false;
+let serialBuffer = "";
 
 let POKEDEX = [];
 let index = 0;
+let writer = null;
+const encoder = new TextEncoder();
+
+async function sendToArduino(line) {
+  if (!port || !port.writable) return;      // not connected
+  if (!writer) writer = port.writable.getWriter();
+  try {
+    await writer.write(encoder.encode(line + "\n"));
+  } catch (e) {
+    console.warn("sendToArduino failed:", e);
+  }
+}
 
 const el = (id) => document.getElementById(id);
 const pad3 = (n) => String(n).padStart(3, "0");
-
-const encoder = new TextEncoder();
 
 function toFeetInches(m) {
   const inches = (m || 0) * 39.3701;
@@ -24,15 +39,6 @@ function toLbs(kg) {
 function typeLabel(p) {
   const main = (p.types && p.types.length) ? p.types[0] : "unknown";
   return (main + " POKÉMON").toUpperCase();
-}
-
-async function sendToArduino(line) {
-  if (!writer) return;
-  try {
-    await writer.write(encoder.encode(line + "\n"));
-  } catch (e) {
-    console.warn("Arduino write failed:", e);
-  }
 }
 
 function renderList() {
@@ -74,7 +80,6 @@ function show(i, alsoUpdateList) {
   const p = POKEDEX[i];
   if (!p) return;
 
-  // UI
   el("dexNo").textContent = "#" + pad3(p.id);
   el("typeLabel").textContent = typeLabel(p);
   el("nameBar").textContent = p.name.toUpperCase();
@@ -91,33 +96,38 @@ function show(i, alsoUpdateList) {
     renderList();
     scrollActiveIntoView();
   }
-
-  // ✅ Send to Arduino LCD (Arduino should parse: SHOW 025 PIKACHU)
+  // send current pokemon to Arduino LCD
   sendToArduino(`SHOW ${pad3(p.id)} ${p.name.toUpperCase()}`);
 }
 
 function next() {
+  if (!POKEDEX.length) return;
   index = (index + 1) % POKEDEX.length;
   show(index, true);
 }
 
 function prev() {
+  if (!POKEDEX.length) return;
   index = (index - 1 + POKEDEX.length) % POKEDEX.length;
   show(index, true);
 }
 
 function randomPick() {
+  if (!POKEDEX.length) return;
   index = Math.floor(Math.random() * POKEDEX.length);
   show(index, true);
 }
 
 function playCry() {
   const a = el("cryAudio");
-  if (!a.src) return;
+  if (!a || !a.src) return;
   a.currentTime = 0;
   a.play().catch(() => { });
 }
 
+// ---------------------
+// Arduino -> Website commands
+// ---------------------
 function handleArduinoCommand(cmd) {
   if (!cmd) return;
 
@@ -129,76 +139,97 @@ function handleArduinoCommand(cmd) {
   else if (cmd === "RAND") randomPick();
 }
 
+// ---------------------
+// Web Serial
+// ---------------------
 async function connectArduino() {
-  try {
-    // If already open, don't try again
-    if (port && port.readable) {
-      console.warn("Port already open.");
-      return;
-    }
+  // If already open, don’t reopen (this is the “port already open” fix)
+  if (port && port.readable) {
+    console.log("Serial already connected.");
+    return;
+  }
 
+  try {
+    // Ask user to pick a port
     port = await navigator.serial.requestPort();
+
+    // Open it
     await port.open({ baudRate: 115200 });
 
-    // Reader
-    const decoder = new TextDecoderStream();
-    port.readable.pipeTo(decoder.writable);
-    reader = decoder.readable.getReader();
+    console.log("✅ Serial port opened");
 
-    // Writer
-    writer = port.writable.getWriter();
-
-    // UI feedback
+    // Update button UI (optional)
     const btn = document.querySelector(".connect-btn");
     if (btn) {
       btn.classList.add("connected");
       btn.textContent = "CONNECTED";
-      btn.disabled = true;
     }
+
+    // Create a text decoder and reader
+    const decoder = new TextDecoderStream();
+    port.readable.pipeTo(decoder.writable);
+    reader = decoder.readable.getReader();
 
     // Start reading loop
-    readArduino();
+    keepReading = true;
+    serialBuffer = "";
+    readArduinoLoop();
 
-    // Immediately push current pokemon to LCD
-    if (POKEDEX.length) {
-      const p = POKEDEX[index];
-      sendToArduino(`SHOW ${pad3(p.id)} ${p.name.toUpperCase()}`);
-    }
   } catch (err) {
-    console.error(err);
-    alert("Failed to connect Arduino. Close Arduino Serial Monitor / VSCode serial monitor and try again.");
+    console.error("❌ connectArduino failed:", err);
+
+    // If it failed, reset state so you can retry cleanly
+    try { if (reader) await reader.cancel(); } catch (_) { }
+    reader = null;
+
+    try { if (port) await port.close(); } catch (_) { }
+    port = null;
+
+    keepReading = false;
+    serialBuffer = "";
   }
 }
 
-async function readArduino() {
+async function readArduinoLoop() {
   try {
-    while (true) {
+    while (keepReading && reader) {
       const { value, done } = await reader.read();
       if (done) break;
       if (!value) continue;
 
-      // Could contain partial lines; simple split works OK for your short commands
-      const lines = value.split("\n");
-      lines.forEach((line) => handleArduinoCommand(line.trim()));
+      // Buffer and split on newlines (handles chunked serial data)
+      serialBuffer += value;
+
+      let idx;
+      while ((idx = serialBuffer.indexOf("\n")) >= 0) {
+        const line = serialBuffer.slice(0, idx).trim();
+        serialBuffer = serialBuffer.slice(idx + 1);
+        if (line) handleArduinoCommand(line);
+      }
     }
   } catch (err) {
-    console.error("Arduino read loop error:", err);
+    console.error("❌ readArduinoLoop error:", err);
   }
 }
 
+// Make it available to your inline onclick="connectArduino()"
+window.connectArduino = connectArduino;
+
+// ---------------------
+// Init
+// ---------------------
 async function main() {
   const res = await fetch("./data/pokedex_gen1.json");
   POKEDEX = await res.json();
 
-  // Pokédex buttons
+  // D-pad + buttons
   el("nextBtn")?.addEventListener("click", next);
   el("prevBtn")?.addEventListener("click", prev);
-  el("cryBtn")?.addEventListener("click", playCry);
-  el("randBtn")?.addEventListener("click", randomPick);
-
-  // D-pad extra buttons (up/down)
   el("prevBtnUp")?.addEventListener("click", prev);
   el("nextBtnDown")?.addEventListener("click", next);
+
+  el("cryBtn")?.addEventListener("click", playCry);
+  el("randBtn")?.addEventListener("click", randomPick);
 
   // Keyboard
   document.addEventListener("keydown", (e) => {
@@ -208,13 +239,8 @@ async function main() {
     if (e.key.toLowerCase() === "r") { randomPick(); }
   });
 
-  // Show initial
   renderList();
   show(index, true);
-
-  // If you have a connect button in HTML with onclick="connectArduino()"
-  // you're good. Otherwise you can wire it here:
-  document.querySelector(".connect-btn")?.addEventListener("click", connectArduino);
 }
 
 main().catch((err) => {
@@ -222,6 +248,3 @@ main().catch((err) => {
   const d = el("desc");
   if (d) d.textContent = "Failed to load data/pokedex_gen1.json (use Live Server).";
 });
-
-// Make connectArduino available for onclick="" usage
-window.connectArduino = connectArduino;
