@@ -1,4 +1,8 @@
 # Overview
+![project](https://github.com/user-attachments/assets/5c1694f3-9861-433e-8ecf-5867b3b5cbdc)
+![arduino](https://github.com/user-attachments/assets/c2b8f43b-ee6b-4fde-84bf-b6fa9f607162)
+
+
 This project recreates the classic Generation 1 Pokédex using both a web interface and a physical Arduino controller.
 
 The website renders a fully interactive retro Pokédex UI containing all 151 Gen-1 Pokémon, including sprites, descriptions, stats, and cries. Pokémon data is sourced from PokéAPI and transformed into a lightweight local dataset used by the UI.
